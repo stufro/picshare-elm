@@ -29,11 +29,15 @@ type alias Feed =
     List Photo
 
 type alias Model =
-    { feed : Maybe Feed }
+    { feed : Maybe Feed 
+    , error : Maybe Http.Error
+    }
 
 initialModel : Model
 initialModel =
-    { feed = Nothing }
+    { feed = Nothing
+    , error = Nothing
+    }
 
 init : () -> (Model, Cmd Msg)
 init () =
@@ -104,8 +108,8 @@ update msg model =
             ( { model | feed = Just feed }
             , Cmd.none
             )
-        LoadFeed (Err _) ->
-            ( model, Cmd.none )
+        LoadFeed (Err error) ->
+            ( { model | error = Just error }, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -188,6 +192,17 @@ viewComment comment =
         , text comment
         ]
 
+errorMessage : Http.Error -> String
+errorMessage error =
+    case error of
+        Http.BadBody _ ->
+            """Sorry, we couldn't process your feed at this time.
+            We're working on it!"""
+
+        _ ->
+            """Sorry, we couldn't load your feed at this time.
+            We're working on it!"""
+
 viewFeed : Maybe Feed -> Html Msg
 viewFeed maybeFeed = 
     case maybeFeed of
@@ -197,13 +212,23 @@ viewFeed maybeFeed =
             div [ class "loading-feed" ]
                 [ text "Loading Feed..."]
 
+viewContent : Model -> Html Msg
+viewContent model =
+    case model.error of
+        Just error ->
+            div [ class "feed-error" ]
+                [ text (errorMessage error) ]
+
+        Nothing ->
+            viewFeed model.feed
+
 view : Model -> Html Msg
 view model =
     div []
         [ div [ class "header" ]
             [ h1 [] [ text "Picshare" ] ]
         , div [ class "content-flow" ]
-            [ viewFeed model.feed ]
+            [ viewContent model ]
         ]
 
 main : Program () Model Msg
