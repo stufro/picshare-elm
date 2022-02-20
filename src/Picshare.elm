@@ -8,10 +8,15 @@ import Array exposing (Array)
 import Json.Decode exposing (Decoder, bool, int, list, string, succeed)
 import Json.Decode.Pipeline exposing (hardcoded, required)
 import Http
+import WebSocket
 
 baseUrl : String
 baseUrl =
     "https://programming-elm.com/"
+
+wsUrl : String
+wsUrl =
+    "wss://programming-elm.com/"
 
 type alias Id =
     Int
@@ -65,6 +70,7 @@ type Msg
     | UpdateComment Id String
     | SaveComment Id
     | LoadFeed (Result Http.Error Feed)
+    | LoadStreamPhoto String
 
 toggleLike : Photo -> Photo
 toggleLike photo =
@@ -106,14 +112,20 @@ update msg model =
             )
         LoadFeed (Ok feed) ->
             ( { model | feed = Just feed }
-            , Cmd.none
+            , WebSocket.listen wsUrl
             )
         LoadFeed (Err error) ->
             ( { model | error = Just error }, Cmd.none )
+        LoadStreamPhoto data ->
+            let
+                _ =
+                    Debug.log "WebSocket data: " data
+            in
+                ( model, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    WebSocket.receive LoadStreamPhoto
 
 saveNewComment : Photo -> Photo
 saveNewComment model =
